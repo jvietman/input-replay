@@ -1,0 +1,6 @@
+{
+    "record": ["ctrl", "1"],
+    "play": ["ctrl", "3"],
+    "loop": ["ctrl", "2"],
+    "debugreplay": ["ctrl", "4"]
+}

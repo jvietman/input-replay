@@ -1,22 +1,25 @@
-import keyboard, time
+import keyboard, time, json
 from keyboard._keyboard_event import KEY_DOWN, KEY_UP
 from tkinter import messagebox
 
 keys = []
-hotkeys = {
-    "record": ["strg", "1"],
-    "play": ["strg", "3"],
-    "loop": ["strg", "2"],
-    "debugreplay": ["strg", "4"]
-}
 recorded = []
 looprecorded = []
-
-playtime = 3
-pause = 0.02
-loop = 0
 looprecord = False
 recording = False
+
+# configuration
+## command hotkeys
+with open("hotkeys.json", "r") as f:
+    hotkeys = json.load(f)
+    f.close()
+
+## custom values
+with open("config.json", "r") as f:
+    config = json.load(f)
+    f.close()
+pause = config["pause"]
+loop = 0
 
 def key_combo(input, combo, order = True):
     if order:
@@ -33,9 +36,11 @@ def key_combo(input, combo, order = True):
         else:
             return False
 
+## pre
 def press_keys(sequence):
     log = []
-    keyboard.release("strg")
+    for i in keys:
+        keyboard.release(i)
     for i in sequence:
         if not i[0] in log:
             log.append(i[0])
@@ -49,11 +54,13 @@ def press_keys(sequence):
     for i in log:
         keyboard.release(i)
 
+## when keyboard detects action (pressed or released)
 def on_action(event):
     global keys, recording, recorded, loop, looprecord, looprecorded
 
     key = event.name.lower()
 
+    # record keys
     if event.event_type == KEY_DOWN: # key down
         if key not in keys:
             if recording:
@@ -70,10 +77,10 @@ def on_action(event):
             
             keys.remove(key)
     
-    print(keys)
+    print(keys) # debug keys array
 
-    # check for key combinations
-    # record
+    # check for hotkeys
+    ## record
     if key_combo(keys, hotkeys["record"]):
         if not recording:
             print("recording")
@@ -85,7 +92,7 @@ def on_action(event):
             recorded = recorded[:-2]
             recording = False
 
-    # play
+    ## play
     if key_combo(keys, hotkeys["play"]):
         if recorded:
             print("play")
@@ -97,24 +104,29 @@ def on_action(event):
             else:
                 press_keys(recorded)
     
-    # loop
+    ## loop
+    ### stop listening for loop amount
     if looprecord and "enter" in keys:
         looprecord = False
+        # extract valid recorded inputs
         tmp = ""
         for i in looprecorded:
             if i.isnumeric():
                 tmp = tmp + str(i)
+        # set valid inputs as loop amount
         loop = int(tmp)
         print("loop set to "+str(loop))
 
+    ### start listening for loop amount (how often recording is looped)
     if key_combo(keys, hotkeys["loop"]):
         print("recording loop")
         looprecord = True
         keys, looprecorded = [], []
     
-    # debug (show recorded inputs)
+    ## debug (show recorded inputs)
     if key_combo(keys, hotkeys["debugreplay"]):
         print("Recording: \""+str(recorded)+"\"")
 
+# start listening for keyboard inputs
 keyboard.hook(lambda e: on_action(e))
 keyboard.wait()
